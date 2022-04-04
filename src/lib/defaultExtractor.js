@@ -1,114 +1,118 @@
-const PATTERNS = [
-  /(?:\['([^'\s]+[^<>"'`\s:\\])')/.source, // ['text-lg' -> text-lg
-  /(?:\["([^"\s]+[^<>"'`\s:\\])")/.source, // ["text-lg" -> text-lg
-  /(?:\[`([^`\s]+[^<>"'`\s:\\])`)/.source, // [`text-lg` -> text-lg
-  /([^${(<>"'`\s]*\[\w*'[^"`\s]*'?\])/.source, // font-['some_font',sans-serif]
-  /([^${(<>"'`\s]*\[\w*"[^'`\s]*"?\])/.source, // font-["some_font",sans-serif]
-  /([^<>"'`\s]*\[\w*\('[^"'`\s]*'\)\])/.source, // bg-[url('...')]
-  /([^<>"'`\s]*\[\w*\("[^"'`\s]*"\)\])/.source, // bg-[url("...")]
-  /([^<>"'`\s]*\[\w*\('[^"`\s]*'\)\])/.source, // bg-[url('...'),url('...')]
-  /([^<>"'`\s]*\[\w*\("[^'`\s]*"\)\])/.source, // bg-[url("..."),url("...")]
-  /([^<>"'`\s]*\[[^<>"'`\s]*\('[^"`\s]*'\)+\])/.source, // h-[calc(100%-theme('spacing.1'))]
-  /([^<>"'`\s]*\[[^<>"'`\s]*\("[^'`\s]*"\)+\])/.source, // h-[calc(100%-theme("spacing.1"))]
-  /([^${(<>"'`\s]*\['[^"'`\s]*'\])/.source, // `content-['hello']` but not `content-['hello']']`
-  /([^${(<>"'`\s]*\["[^"'`\s]*"\])/.source, // `content-["hello"]` but not `content-["hello"]"]`
-  /([^<>"'`\s]*\[[^<>"'`\s]*:[^\]\s]*\])/.source, // `[attr:value]`
-  /([^<>"'`\s]*\[[^<>"'`\s]*:'[^"'`\s]*'\])/.source, // `[content:'hello']` but not `[content:"hello"]`
-  /([^<>"'`\s]*\[[^<>"'`\s]*:"[^"'`\s]*"\])/.source, // `[content:"hello"]` but not `[content:'hello']`
-  /([^<>"'`\s]*\[[^"'`\s]+\][^<>"'`\s]*)/.source, // `fill-[#bada55]`, `fill-[#bada55]/50`
-  /([^"'`\s]*[^<>"'`\s:\\])/.source, //  `<sm:underline`, `md>:font-bold`
-  /([^<>"'`\s]*[^"'`\s:\\])/.source, //  `px-1.5`, `uppercase` but not `uppercase:`
-
-  // Arbitrary properties
-  // /([^"\s]*\[[^\s]+?\][^"\s]*)/.source,
-  // /([^'\s]*\[[^\s]+?\][^'\s]*)/.source,
-  // /([^`\s]*\[[^\s]+?\][^`\s]*)/.source,
-].join('|')
-
-const BROAD_MATCH_GLOBAL_REGEXP = new RegExp(PATTERNS, 'g')
-const INNER_MATCH_GLOBAL_REGEXP = /[^<>"'`\s.(){}[\]#=%$]*[^<>"'`\s.(){}[\]#=%:$]/g
+import * as regex from "./regex"
 
 /**
  * @param {any} context
  */
 export function defaultExtractor(context) {
-  const reRegExpChar = /[\\^$.*+?()[\]{}|]/g
-  const reHasRegExpChar = RegExp(reRegExpChar.source)
+  let patterns = Array.from(buildRegExps(context))
 
-  function escapeRegExp(string) {
-    return (string && reHasRegExpChar.test(string))
-      ? string.replace(reRegExpChar, '\\$&')
-      : (string || '')
-  }
-
-  let pattern = new RegExp([
-    '(',
-      // Variants
-      '(?:',
-        /[^\s\\'"]+/.source,
-        escapeRegExp(context.tailwindConfig.separator),
-      ')*',
-
-      // Important utilities (!underline, hover:!underline, etc…)
-      /!?/.source,
-
-      // Negative utilities (-inset-1, -tw-inset-1)
-      /-?/.source,
-
-      context.tailwindConfig.prefix,
-
-      // Negative utilities (tw--inset-1)
-      /-?/.source,
-
-      '(?:',
-        `(?:\\b|${escapeRegExp(context.tailwindConfig.separator)}?)`,
-        // Utility Groups
-        '(?:',
-          '(?:',
-            Array.from(new Set(context.getUtilityPrefixes())).sort((a, b) => {
-              return (b.length - a.length)
-                  || a.localeCompare(b)
-            }).map(escapeRegExp).join('|'),
-          ')',
-
-          '(?:',
-            '(?:',
-              // Utility values the `5` in `inset-x-5`
-              /[^\s\\'"=\[]+/.source,
-
-              // or…
-              '|',
-
-              // Arbitrary values like the `['foo']` in `inset-x-['foo']`
-              /\[[^\s]+\]/.source,
-            ')',
-
-            // Followed by an optional color opacity modifier
-            /(?:\/[^\s\\'"]+)?/.source,
-          ')?',
-        ')',
-
-        // Or arbitrary properties like the `[text-shadow:0_0_1px_magenta]`
-        '|',
-        /\[[^\s:'"]+:[^\s\]]+\]/.source,
-      ')',
-    ')',
-  ].join(''), 'g')
-
-  // console.log(pattern)
+  console.log(patterns)
 
   /**
    * @param {string} content
    */
   return content => {
-    return Array.from(content.matchAll(pattern)).flat().filter((v) => v !== undefined)
-    // let broadMatches = content.matchAll(BROAD_MATCH_GLOBAL_REGEXP)
-    let broadMatches = content.matchAll(pattern)
-    let innerMatches = content.match(INNER_MATCH_GLOBAL_REGEXP) || []
-    let results = [...broadMatches, ...innerMatches].flat().filter((v) => v !== undefined)
+    let results = []
+
+    for (let pattern of patterns) {
+      results.push(...Array.from(content.matchAll(pattern)).flat().filter((v) => v !== undefined))
+    }
 
     return results
   }
+}
+
+/**
+ * @param {any} context
+ */
+function* buildRegExps(context) {
+  let maybeImportant = /!?/
+  let maybeNegative = /-?/
+
+  let utilityGroups = regex.optional(regex.any(
+      context.getUtilityPrefixes()
+        .sort((a, b) => (b.length - a.length) || a.localeCompare(b))
+        .map(regex.escape)
+  ))
+
+  let zeroOrMoreVariants = regex.zeroOrMore([
+    /[^\s\\'"]+/,
+    regex.escape(context.tailwindConfig.separator),
+  ])
+
+  let opacityModifier = regex.optional(regex.any([
+    // Known opacity modifier
+    /\/[^\s\\'"\[]+/,
+
+    // Arbitrary opacity modifier
+    /\/\[[^\s]+\]/
+  ]))
+
+  // 1. Normal utilities
+  yield regex.pattern([
+    // hover:, hover:focus:, hover:active:, etc…
+    zeroOrMoreVariants,
+
+    // Important utilities (!underline, hover:!underline, etc…)
+    maybeImportant,
+
+    // Negative utilities (before prefix: -inset-1, -tw-inset-1)
+    maybeNegative,
+
+    // A prefix (if one is configured)
+    context.tailwindConfig.prefix,
+
+    // Negative utilities (after prefix: tw--inset-1)
+    maybeNegative,
+
+    // sr-only, border, border-, border-r-, border-l-, etc…
+    utilityGroups,
+
+    // Utility values the `5` in `inset-x-5`
+    /[^\s\\'"=\[\/]*/,
+
+    // Followed by an optional color opacity modifier
+    opacityModifier,
+  ])
+
+  // 2. Arbitrary value utilities
+  yield regex.pattern([
+    // hover:, hover:focus:, hover:active:, etc…
+    zeroOrMoreVariants,
+
+    // Important utilities (!underline, hover:!underline, etc…)
+    maybeImportant,
+
+    // A prefix (if one is configured)
+    context.tailwindConfig.prefix,
+
+    // sr-only, border, border-, border-r-, border-l-, etc…
+    utilityGroups,
+
+    // Arbitrary values like the `['foo']` in `inset-x-['foo']`
+    /(?:\[[^\s\]]+\])/,
+
+    // Followed by an optional color opacity modifier
+    opacityModifier,
+  ])
+
+  // 3. Arbitrary property utilities
+  yield regex.pattern([
+    // hover:, hover:focus:, hover:active:, etc…
+    zeroOrMoreVariants,
+
+    // Important utilities (!underline, hover:!underline, etc…)
+    maybeImportant,
+
+    // A prefix (if one is configured)
+    context.tailwindConfig.prefix,
+
+    // Arbitrary properties like the `[text-shadow:0_0_1px_magenta]`
+    /\[[^\s:'"]+:[^\s\]]+\]/,
+  ])
+
+  // 4. Inner matches
+  yield /[^<>"'`\s.(){}[\]#=%$]*[^<>"'`\s.(){}[\]#=%:$]/g
 }
 
 // Regular utilities

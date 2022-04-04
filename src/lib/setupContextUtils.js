@@ -762,24 +762,27 @@ function registerPlugins(plugins, context) {
     })
   }
 
-  context.getUtilityPrefixes = function* () {
+  context.getUtilityPrefixes = function () {
     let prefixLength = context.tailwindConfig.prefix.length
+    let utils = new Set()
 
     for (let util of classList) {
       if (! Array.isArray(util)) {
-        yield util.slice(prefixLength)
+        utils.add(util)
         continue
       }
 
       let name = util[0]
-      let valueNames = Object.keys(util[1].values ?? {})
+      let values = util[1].values ?? {}
 
-      if (valueNames.includes('DEFAULT')) {
-        yield name.slice(prefixLength)
+      utils.add(`${name}-`)
+
+      if ('DEFAULT' in values) {
+        utils.add(name)
       }
-
-      yield name.slice(prefixLength) + '-'
     }
+
+    return Array.from(utils, (util) => util.slice(prefixLength))
   }
 
   // Generate a list of strings for autocompletion purposes, e.g.

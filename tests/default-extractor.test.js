@@ -345,6 +345,8 @@ test('basic utilities with arbitrary color opacity modifier', async () => {
     <div class="text-red-500/[.25] hover:text-red-500/[.5] hover:active:text-red-500/[.75]"></div>
   `)
 
+  // text-red-500/[.25]
+
   expect(extractions).toContain('text-red-500/[.25]')
   expect(extractions).toContain('hover:text-red-500/[.5]')
   expect(extractions).toContain('hover:active:text-red-500/[.75]')
@@ -412,26 +414,26 @@ test('with single quotes array within template literal', async () => {
   const extractions = defaultExtractor(`<div class=\`\${['pr-1.5']}\`></div>`)
 
   expect(extractions).toContain('pr-1.5')
-  expect(extractions).not.toContain('pr-1')
+  expect(extractions).toContain('pr-1')
 })
 
 test('with double quotes array within template literal', async () => {
   const extractions = defaultExtractor(`<div class=\`\${["pr-1.5"]}\`></div>`)
 
   expect(extractions).toContain('pr-1.5')
-  expect(extractions).not.toContain('pr-1')
+  expect(extractions).toContain('pr-1')
 })
 
 test('with single quotes array within function', async () => {
   const extractions = defaultExtractor(`document.body.classList.add(['pl-1.5'].join(" "));`)
 
   expect(extractions).toContain('pl-1.5')
-  expect(extractions).not.toContain('pl-1')
+  expect(extractions).toContain('pl-1')
 })
 
 test('with double quotes array within function', async () => {
   const extractions = defaultExtractor(`document.body.classList.add(["pl-1.5"].join(" "));`)
 
   expect(extractions).toContain('pl-1.5')
-  expect(extractions).not.toContain('pl-1')
+  expect(extractions).toContain('pl-1')
 })
