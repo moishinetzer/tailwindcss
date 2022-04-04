@@ -1,5 +1,8 @@
 import { html } from './util/run'
-import { defaultExtractor } from '../src/lib/defaultExtractor'
+import { defaultExtractor as _defaultExtractor } from '../src/lib/defaultExtractor'
+import { contextMap } from '../src/lib/sharedState'
+import postcss from 'postcss'
+import tailwind from '../src'
 
 const jsExamples = `
   document.body.classList.add(["pl-1.5"].join(" "));
@@ -56,7 +59,8 @@ const htmlExamples = html`
     let classes11 = ['hover:']
     let classes12 = ['hover:\'abc']
     let classes13 = ["lg:text-[4px]"]
-    let classes14 = ["<div class='hover:test'>"]
+    let classes14 = ["<div class='hover:underline'>"]
+    let classes15 = ["<div class='hover:test'>"] // unknown so dont generate
 
     let obj = {
       lowercase: true,
@@ -133,7 +137,7 @@ const includes = [
   `lg:text-[4px]`,
   `lg:text-[24px]`,
   `content-['>']`,
-  `hover:test`,
+  `hover:underline`,
   `overflow-scroll`,
   `[--y:theme(colors.blue.500)]`,
   `w-[calc(100%-theme('spacing.1'))]`,
@@ -145,9 +149,23 @@ const excludes = [
   'hover:',
   "hover:'abc",
   `font-bold`,
+  `<div class='hover:underline'>`,
+  `hover:test`,
   `<div class='hover:test'>`,
   `test`,
 ]
+
+let defaultExtractor
+
+beforeEach(async () => {
+  await postcss(tailwind({ content: [] })).process('@tailwind base;', {
+    from: 'potato',
+  })
+
+  let context = contextMap.get('potato')
+
+  defaultExtractor = _defaultExtractor(context)
+})
 
 test('The default extractor works as expected', async () => {
   const extractions = defaultExtractor([jsExamples, jsxExamples, htmlExamples].join('\n').trim())
@@ -193,7 +211,7 @@ test('basic utility classes', async () => {
   expect(extractions).toContain('pointer-events-none')
 })
 
-test('modifiers with basic utilites', async () => {
+test('modifiers with basic utilities', async () => {
   const extractions = defaultExtractor(`
     <div class="hover:text-center hover:focus:font-bold"></div>
   `)
@@ -394,26 +412,26 @@ test('with single quotes array within template literal', async () => {
   const extractions = defaultExtractor(`<div class=\`\${['pr-1.5']}\`></div>`)
 
   expect(extractions).toContain('pr-1.5')
-  expect(extractions).toContain('pr-1')
+  expect(extractions).not.toContain('pr-1')
 })
 
 test('with double quotes array within template literal', async () => {
   const extractions = defaultExtractor(`<div class=\`\${["pr-1.5"]}\`></div>`)
 
   expect(extractions).toContain('pr-1.5')
-  expect(extractions).toContain('pr-1')
+  expect(extractions).not.toContain('pr-1')
 })
 
 test('with single quotes array within function', async () => {
   const extractions = defaultExtractor(`document.body.classList.add(['pl-1.5'].join(" "));`)
 
   expect(extractions).toContain('pl-1.5')
-  expect(extractions).toContain('pl-1')
+  expect(extractions).not.toContain('pl-1')
 })
 
 test('with double quotes array within function', async () => {
   const extractions = defaultExtractor(`document.body.classList.add(["pl-1.5"].join(" "));`)
 
   expect(extractions).toContain('pl-1.5')
-  expect(extractions).toContain('pl-1')
+  expect(extractions).not.toContain('pl-1')
 })

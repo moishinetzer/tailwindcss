@@ -762,6 +762,26 @@ function registerPlugins(plugins, context) {
     })
   }
 
+  context.getUtilityPrefixes = function* () {
+    let prefixLength = context.tailwindConfig.prefix.length
+
+    for (let util of classList) {
+      if (! Array.isArray(util)) {
+        yield util.slice(prefixLength)
+        continue
+      }
+
+      let name = util[0]
+      let valueNames = Object.keys(util[1].values ?? {})
+
+      if (valueNames.includes('DEFAULT')) {
+        yield name.slice(prefixLength)
+      }
+
+      yield name.slice(prefixLength) + '-'
+    }
+  }
+
   // Generate a list of strings for autocompletion purposes, e.g.
   // ['uppercase', 'lowercase', ...]
   context.getClassList = function getClassList() {
