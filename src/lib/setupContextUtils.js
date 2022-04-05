@@ -762,27 +762,32 @@ function registerPlugins(plugins, context) {
     })
   }
 
+  /** @internal */
   context.getUtilityPrefixes = function () {
     let prefixLength = context.tailwindConfig.prefix.length
-    let utils = new Set()
+    let groups = new Set()
+    let singular = new Set()
 
     for (let util of classList) {
       if (! Array.isArray(util)) {
-        utils.add(util)
+        singular.add(util)
         continue
       }
 
       let name = util[0]
       let values = util[1].values ?? {}
 
-      utils.add(`${name}-`)
-
       if ('DEFAULT' in values) {
-        utils.add(name)
+        singular.add(name)
       }
+
+      groups.add(name)
     }
 
-    return Array.from(utils, (util) => util.slice(prefixLength))
+    return {
+      groups: Array.from(groups, (util) => util.slice(prefixLength)),
+      singular: Array.from(singular, (util) => util.slice(prefixLength)),
+    }
   }
 
   // Generate a list of strings for autocompletion purposes, e.g.

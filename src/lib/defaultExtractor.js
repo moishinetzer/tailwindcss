@@ -6,19 +6,22 @@ import * as regex from "./regex"
 export function defaultExtractor(context) {
   let patterns = Array.from(buildRegExps(context))
 
-  console.log(patterns)
-
   /**
    * @param {string} content
    */
   return content => {
+    /** @type {(string|string)[]} */
     let results = []
 
     for (let pattern of patterns) {
-      results.push(...Array.from(content.matchAll(pattern)).flat().filter((v) => v !== undefined))
+      console.log(pattern)
+
+      for (const match of content.matchAll(pattern)) {
+        results.push(...match)
+      }
     }
 
-    return results
+    return results.filter((v) => v !== undefined)
   }
 }
 
@@ -26,32 +29,67 @@ export function defaultExtractor(context) {
  * @param {any} context
  */
 function* buildRegExps(context) {
-  let maybeImportant = /!?/
-  let maybeNegative = /-?/
+  let utilities = context.getUtilityPrefixes()
+  let variantSeparator = regex.escape(context.tailwindConfig.separator)
 
-  let utilityGroups = regex.optional(regex.any(
-      context.getUtilityPrefixes()
-        .sort((a, b) => (b.length - a.length) || a.localeCompare(b))
-        .map(regex.escape)
-  ))
-
-  let zeroOrMoreVariants = regex.zeroOrMore([
-    /[^\s\\'"]+/,
-    regex.escape(context.tailwindConfig.separator),
+  // Matches hover:, focus:, hover:focus:, etc…
+  // Accounts for the configured variant separator
+  let variants = regex.zeroOrMore([
+    `[^\s\\'"${variantSeparator}]+`,
+    variantSeparator,
   ])
 
-  let opacityModifier = regex.optional(regex.any([
-    // Known opacity modifier
-    /\/[^\s\\'"\[]+/,
+  // Important prefix modifier
+  // !underline, !text-red-500, …
+  let maybeImportant = /!?/
+
+  // Negative modifier for a utility
+  // -translate-x-full, -mx-4, …
+  let maybeNegative = /-?/
+
+  // A prefix (if one is configured)
+  let maybePrefix =  regex.escape(context.tailwindConfig.prefix)
+
+  // Matches singular utilities
+  // sr-only, border, underline, …
+  let singularUtilities = regex.any(
+    utilities.singular
+      .sort((a, b) => (b.length - a.length) || a.localeCompare(b))
+      .map(regex.escape)
+  )
+
+  // Matches utility groups
+  // border-*, border-r-*, …
+  let groupedUtilities = regex.any(
+    utilities.groups
+      .sort((a, b) => (b.length - a.length) || a.localeCompare(b))
+      .map(regex.escape)
+  )
+
+  let maybeOpacityModifier = regex.optional(regex.any([
+    // ORDER IS IMPORTANT HERE :)
 
     // Arbitrary opacity modifier
-    /\/\[[^\s]+\]/
+    // e.g. `text-red-500/[.5]`
+    /\/\[[^\s]+\]/,
+
+    // Known opacity modifier
+    // e.g. `text-red-500/50`
+    /\/[^\s\\'"\[]+/,
+
+    // Empty opacity modifier
+    // e.g. `text-red-500/`
+    /\//,
   ]))
 
-  // 1. Normal utilities
+  // Zero length assertion ensuring a class is followed by something that is definitely not part of this class
+  // (or end of the line)
+  let followedByNonClassThing = /(?=[\s\\'"]|$)/
+
+  // 1. Singular utilities
   yield regex.pattern([
     // hover:, hover:focus:, hover:active:, etc…
-    zeroOrMoreVariants,
+    variants,
 
     // Important utilities (!underline, hover:!underline, etc…)
     maybeImportant,
@@ -60,58 +98,114 @@ function* buildRegExps(context) {
     maybeNegative,
 
     // A prefix (if one is configured)
-    context.tailwindConfig.prefix,
+    maybePrefix,
 
     // Negative utilities (after prefix: tw--inset-1)
     maybeNegative,
 
     // sr-only, border, border-, border-r-, border-l-, etc…
-    utilityGroups,
+    singularUtilities,
+
+    // NOT followed by a hyphen because that'd be a grouped utility
+    /(?!-)/,
+
+    // Followed by an optional color opacity modifier
+    maybeOpacityModifier,
+
+    // Followed by something that is definitely not part of this class
+    // For example this prevents border-r from matching border-red-500 unless it's "by itself"
+    followedByNonClassThing,
+  ])
+
+  // 2. Grouped utilities
+  yield regex.pattern([
+    // hover:, hover:focus:, hover:active:, etc…
+    variants,
+
+    // Important utilities (!underline, hover:!underline, etc…)
+    maybeImportant,
+
+    // Negative utilities (before prefix: -inset-1, -tw-inset-1)
+    maybeNegative,
+
+    // A prefix (if one is configured)
+    maybePrefix,
+
+    // Negative utilities (after prefix: tw--inset-1)
+    maybeNegative,
+
+    // border-, border-r-, border-l-, etc…
+    groupedUtilities,
 
     // Utility values the `5` in `inset-x-5`
-    /[^\s\\'"=\[\/]*/,
+    // optional for utilities that are not a group
+    // Can't contain `[` because that means it's part of an arbitrary value
+    /-/,
+    /[^\s\\'"=\[\/]+/,
 
     // Followed by an optional color opacity modifier
-    opacityModifier,
+    maybeOpacityModifier,
+
+    // Followed by something that is definitely not part of this class
+    // For example this prevents border-r from matching border-red-500 unless it's "by itself"
+    followedByNonClassThing,
   ])
 
-  // 2. Arbitrary value utilities
+  // 3. Arbitrary value utilities
   yield regex.pattern([
     // hover:, hover:focus:, hover:active:, etc…
-    zeroOrMoreVariants,
+    variants,
 
     // Important utilities (!underline, hover:!underline, etc…)
     maybeImportant,
 
+    // Negative utilities (before prefix: -inset-1, -tw-inset-1)
+    maybeNegative,
+
     // A prefix (if one is configured)
-    context.tailwindConfig.prefix,
+    maybePrefix,
+
+    // Negative utilities (before prefix: -inset-1, -tw-inset-1)
+    maybeNegative,
 
     // sr-only, border, border-, border-r-, border-l-, etc…
-    utilityGroups,
+    groupedUtilities,
 
     // Arbitrary values like the `['foo']` in `inset-x-['foo']`
-    /(?:\[[^\s\]]+\])/,
+    // TODO: This treats w-[foo]w-[bar] as two separate values when it should be treated as a single value
+    /-/,
+    /\[[^\s]+\]/,
+    // regex.nestedBrackets('[', ']', 3),
 
     // Followed by an optional color opacity modifier
-    opacityModifier,
+    maybeOpacityModifier,
   ])
 
-  // 3. Arbitrary property utilities
+  // 4. Arbitrary property utilities
   yield regex.pattern([
     // hover:, hover:focus:, hover:active:, etc…
-    zeroOrMoreVariants,
+    variants,
 
     // Important utilities (!underline, hover:!underline, etc…)
     maybeImportant,
 
     // A prefix (if one is configured)
-    context.tailwindConfig.prefix,
+    maybePrefix,
+
+    // Not preceded by a hyphen because that'd be part of a grouped utility with a type clarification
+    // TODO: Check this with a prefix that has a hyphen
+    // Maybe positive assertion for preceded by prefix or non-hyphen
+    // For example: w-[length:12px]
+    /(?<!-)/,
 
     // Arbitrary properties like the `[text-shadow:0_0_1px_magenta]`
     /\[[^\s:'"]+:[^\s\]]+\]/,
+
+    // Followed by something that is definitely not part of this class
+    followedByNonClassThing,
   ])
 
-  // 4. Inner matches
+  // 5. Inner matches
   yield /[^<>"'`\s.(){}[\]#=%$]*[^<>"'`\s.(){}[\]#=%:$]/g
 }
 

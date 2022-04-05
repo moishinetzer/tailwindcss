@@ -150,7 +150,6 @@ const excludes = [
   "hover:'abc",
   `font-bold`,
   `<div class='hover:underline'>`,
-  `hover:test`,
   `<div class='hover:test'>`,
   `test`,
 ]

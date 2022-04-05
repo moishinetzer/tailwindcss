@@ -272,7 +272,7 @@ it('shadows support values without a leading zero', () => {
   })
 })
 
-it('can scan extremely long classes without crashing', () => {
+it.only('can scan extremely long classes without crashing', () => {
   let val = 'cols-' + '-a'.repeat(65536)
   let config = {
     content: [{ raw: html`<div class="${val}"></div>` }],
