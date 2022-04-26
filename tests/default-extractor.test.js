@@ -60,6 +60,7 @@ const htmlExamples = html`
     let classes15 = ["<div class='hover:test'>"] // unknown so dont generate
     let classes16 = ["font-[arbitrary,'arbitrary_with_space']"]
     let classes17 = ["font-['arbitrary_with_space','arbitrary_2']"]
+    let classes18 = ["bg-[url('/images/one-two-three.png'),linear-gradient(to_right,_#eeeeee,_#000000)]"]
 
     let obj = {
       lowercase: true,
@@ -149,6 +150,7 @@ const includes = [
   `translate-x-[var(--scroll-offset)]`,
   `font-[arbitrary,'arbitrary_with_space']`,
   `font-['arbitrary_with_space','arbitrary_2']`,
+  `bg-[url('/images/one-two-three.png'),linear-gradient(to_right,_#eeeeee,_#000000)]`,
 ]
 
 const excludes = [
