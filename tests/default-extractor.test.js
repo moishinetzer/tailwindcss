@@ -61,6 +61,8 @@ const htmlExamples = html`
     let classes13 = ["lg:text-[4px]"]
     let classes14 = ["<div class='hover:underline'>"]
     let classes15 = ["<div class='hover:test'>"] // unknown so dont generate
+    let classes16 = ["font-[arbitrary,'arbitrary_with_space']"]
+    let classes17 = ["font-['arbitrary_with_space','arbitrary_2']"]
 
     let obj = {
       lowercase: true,
@@ -76,6 +78,10 @@ const htmlExamples = html`
     let obj3 = {
       "h-[109px]": true
     }
+  </script>
+  <script type="text/twig">
+    element['#border_color']|default('border-[color:var(--color,theme(colors.cyan.500))]')
+    {% if settings == 'foo'%}translate-x-[var(--scroll-offset)]{% endif %}
   </script>
 `
 
@@ -142,6 +148,10 @@ const includes = [
   `[--y:theme(colors.blue.500)]`,
   `w-[calc(100%-theme('spacing.1'))]`,
   `w-[calc(100%-theme("spacing.2"))]`,
+  `border-[color:var(--color,theme(colors.cyan.500))]`,
+  `translate-x-[var(--scroll-offset)]`,
+  `font-[arbitrary,'arbitrary_with_space']`,
+  `font-['arbitrary_with_space','arbitrary_2']`,
 ]
 
 const excludes = [

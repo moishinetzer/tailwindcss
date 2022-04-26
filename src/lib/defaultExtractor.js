@@ -49,6 +49,9 @@ function* buildRegExps(context) {
             // Arbitrary values
             /-\[[^\s:]+\]/,
 
+            // Not immediately followed by an `{[(`
+            /(?![{([]])/,
+
             // optionally followed by an opacity modifier
             /(?:\/[^\s'"\\$]*)?/,
           ]),
@@ -57,12 +60,15 @@ function* buildRegExps(context) {
             // Arbitrary values
             /-\[[^\s]+\]/,
 
+            // Not immediately followed by an `{[(`
+            /(?![{([]])/,
+
             // optionally followed by an opacity modifier
             /(?:\/[^\s'"\\$]*)?/,
           ]),
 
           // Normal values w/o quotes — may include an opacity modifier
-          /[-\/][^\s'"\\$=]*/,
+          /[-\/][^\s'"\\$={]*/,
         ]))
       ]),
     ]),
