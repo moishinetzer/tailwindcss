@@ -53,6 +53,14 @@ function* buildRegExps(context) {
             /(?:\/[^\s'"\\$]*)?/,
           ]),
 
+          regex.pattern([
+            // Arbitrary values
+            /-\[[^\s]+\]/,
+
+            // optionally followed by an opacity modifier
+            /(?:\/[^\s'"\\$]*)?/,
+          ]),
+
           // Normal values w/o quotes — may include an opacity modifier
           /[-\/][^\s'"\\$=]*/,
         ]))
@@ -138,14 +146,6 @@ function clipAtBalancedParens(input) {
 
     // If we're at zero and encounter a non-class character then we clip the class there
     if (depth === 0 && !isAllowedCharacter) {
-      if (input.includes("text-[52px")) {
-        console.log({
-          input,
-          char,
-          clipped: input.substring(0, match.index)
-        })
-      }
-
       return input.substring(0, match.index)
     }
   }
