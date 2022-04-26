@@ -1,8 +1,5 @@
 import { html } from './util/run'
-import { defaultExtractor as _defaultExtractor } from '../src/lib/defaultExtractor'
-import { contextMap } from '../src/lib/sharedState'
-import postcss from 'postcss'
-import tailwind from '../src'
+import { defaultExtractor } from '../src/lib/defaultExtractor'
 
 const jsExamples = `
   document.body.classList.add(["pl-1.5"].join(" "));
@@ -163,18 +160,6 @@ const excludes = [
   `<div class='hover:test'>`,
   `test`,
 ]
-
-let defaultExtractor
-
-beforeEach(async () => {
-  await postcss(tailwind({ content: [] })).process('@tailwind base;', {
-    from: 'potato',
-  })
-
-  let context = contextMap.get('potato')
-
-  defaultExtractor = _defaultExtractor(context)
-})
 
 test('The default extractor works as expected', async () => {
   const extractions = defaultExtractor([jsExamples, jsxExamples, htmlExamples].join('\n').trim())

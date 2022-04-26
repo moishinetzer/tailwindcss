@@ -1,32 +1,24 @@
 import * as regex from "./regex"
 
+let patterns = Array.from(buildRegExps())
+
 /**
  * @param {any} context
  */
-export function defaultExtractor(context) {
-  let patterns = Array.from(buildRegExps(context))
+export function defaultExtractor() {
+  /** @type {(string|string)[]} */
+  let results = []
 
-  /**
-   * @param {string} content
-   */
-  return content => {
-    /** @type {(string|string)[]} */
-    let results = []
-
-    for (let pattern of patterns) {
-      for (let match of content.match(pattern) ?? []) {
-        results.push(match)
-      }
+  for (let pattern of patterns) {
+    for (let match of content.match(pattern) ?? []) {
+      results.push(match)
     }
-
-    return results.filter((v) => v !== undefined).map(clipAtBalancedParens)
   }
+
+  return results.filter((v) => v !== undefined).map(clipAtBalancedParens)
 }
 
-/**
- * @param {any} context
- */
-function* buildRegExps(context) {
+function* buildRegExps() {
   yield regex.pattern([
     // Variants
     /((?=([^\s"'\\\[]+:))\2)?/,
