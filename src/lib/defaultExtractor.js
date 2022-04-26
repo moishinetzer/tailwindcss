@@ -10,7 +10,7 @@ export function defaultExtractor(content) {
   let results = []
 
   for (let pattern of patterns) {
-    results.push(...content.match(pattern) ?? [])
+    results.push(...(content.match(pattern) ?? []))
   }
 
   return results.filter((v) => v !== undefined).map(clipAtBalancedParens)
