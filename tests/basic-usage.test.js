@@ -404,7 +404,13 @@ it('should generate styles using :not(.unknown-class) even if `.unknown-class` d
 
 it('should generate styles using :not(.unknown-class) even if `.unknown-class` does not exist', () => {
   let config = {
-    content: [{ raw: html`<div class="bg-[url('/images/one-two-three.png'),linear-gradient(to_right,_#eeeeee,_#000000)]"></div>` }],
+    content: [
+      {
+        raw: html`<div
+          class="bg-[url('/images/one-two-three.png'),linear-gradient(to_right,_#eeeeee,_#000000)]"
+        ></div>`,
+      },
+    ],
     corePlugins: { preflight: false },
   }
 
@@ -414,8 +420,12 @@ it('should generate styles using :not(.unknown-class) even if `.unknown-class` d
 
   return run(input, config).then((result) => {
     expect(result.css).toMatchFormattedCss(css`
-      .bg-\[url\(\'\/images\/one-two-three\.png\'\)\2c linear-gradient\(to_right\2c _\#eeeeee\2c _\#000000\)\] {
-        background-image: url("/images/one-two-three.png"), linear-gradient(to right, #eeeeee, #000000);
+      .bg-\[url\(\'\/images\/one-two-three\.png\'\)\2c
+        linear-gradient\(to_right\2c
+        _\#eeeeee\2c
+        _\#000000\)\] {
+        background-image: url('/images/one-two-three.png'),
+          linear-gradient(to right, #eeeeee, #000000);
       }
     `)
   })
