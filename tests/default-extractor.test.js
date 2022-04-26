@@ -339,8 +339,6 @@ test('basic utilities with arbitrary color opacity modifier', async () => {
     <div class="text-red-500/[.25] hover:text-red-500/[.5] hover:active:text-red-500/[.75]"></div>
   `)
 
-  // text-red-500/[.25]
-
   expect(extractions).toContain('text-red-500/[.25]')
   expect(extractions).toContain('hover:text-red-500/[.5]')
   expect(extractions).toContain('hover:active:text-red-500/[.75]')

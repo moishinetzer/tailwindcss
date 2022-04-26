@@ -762,34 +762,6 @@ function registerPlugins(plugins, context) {
     })
   }
 
-  /** @internal */
-  context.getUtilityPrefixes = function () {
-    let prefixLength = context.tailwindConfig.prefix.length
-    let groups = new Set()
-    let singular = new Set()
-
-    for (let util of classList) {
-      if (!Array.isArray(util)) {
-        singular.add(util)
-        continue
-      }
-
-      let name = util[0]
-      let values = util[1].values ?? {}
-
-      if ('DEFAULT' in values) {
-        singular.add(name)
-      }
-
-      groups.add(name)
-    }
-
-    return {
-      groups: Array.from(groups, (util) => util.slice(prefixLength)),
-      singular: Array.from(singular, (util) => util.slice(prefixLength)),
-    }
-  }
-
   // Generate a list of strings for autocompletion purposes, e.g.
   // ['uppercase', 'lowercase', ...]
   context.getClassList = function getClassList() {
