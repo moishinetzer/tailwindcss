@@ -10,9 +10,7 @@ export function defaultExtractor(content) {
   let results = []
 
   for (let pattern of patterns) {
-    for (let match of content.match(pattern) ?? []) {
-      results.push(match)
-    }
+    results.push(...content.match(pattern) ?? [])
   }
 
   return results.filter((v) => v !== undefined).map(clipAtBalancedParens)
@@ -75,7 +73,7 @@ function* buildRegExps() {
 // We want to capture any "special" characters
 // AND the characters immediately following them (if there is one)
 // However we want single character matches so we have to use a lookbehind assertion
-let SPECIALS = /[()\[\]{}'"`]|(?<=[()\[\]{}'"`])./g
+let SPECIALS = /[\[\]'"`]|(?<=[\[\]'"`])./g
 let ALLOWED_CLASS_CHARACTERS = /[^"'`\s<>\]]+/
 
 /**
@@ -98,9 +96,6 @@ function clipAtBalancedParens(input) {
     return input
   }
 
-  // We are care about this for arbitrary values
-  SPECIALS.lastIndex = -1
-
   let depth = 0
   let openStringTypes = []
 
@@ -112,21 +107,18 @@ function clipAtBalancedParens(input) {
     let char = match[0]
     let inStringType = openStringTypes[openStringTypes.length - 1]
 
-    if (char === inStringType) openStringTypes.pop()
-    if (char === "'" && inStringType !== char) openStringTypes.push(char)
-    if (char === '"' && inStringType !== char) openStringTypes.push(char)
-    if (char === '`' && inStringType !== char) openStringTypes.push(char)
+    if (char === inStringType) {
+      openStringTypes.pop()
+    } else if (char === "'" || char === '"' || char === '`') {
+      openStringTypes.push(char)
+    }
 
     if (inStringType) {
       continue
-    }
-
-    if (char === '[') {
+    } else if (char === '[') {
       depth++
       continue
-    }
-
-    if (char === ']') {
+    } else if (char === ']') {
       depth--
       continue
     }
@@ -138,14 +130,12 @@ function clipAtBalancedParens(input) {
       return input.substring(0, match.index)
     }
 
-    let isAllowedCharacter = ALLOWED_CLASS_CHARACTERS.test(char)
-
     // We've finished balancing the brackets but there still may be characters that can be included
     // For example in the class `text-[#336699]/[.35]`
     // The depth goes to `0` at the closing `]` but goes up again at the `[`
 
     // If we're at zero and encounter a non-class character then we clip the class there
-    if (depth === 0 && !isAllowedCharacter) {
+    if (depth === 0 && !ALLOWED_CLASS_CHARACTERS.test(char)) {
       return input.substring(0, match.index)
     }
   }
