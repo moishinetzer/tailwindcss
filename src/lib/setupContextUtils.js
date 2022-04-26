@@ -769,7 +769,7 @@ function registerPlugins(plugins, context) {
     let singular = new Set()
 
     for (let util of classList) {
-      if (! Array.isArray(util)) {
+      if (!Array.isArray(util)) {
         singular.add(util)
         continue
       }

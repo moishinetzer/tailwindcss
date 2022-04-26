@@ -1,11 +1,11 @@
-import * as regex from "./regex"
+import * as regex from './regex'
 
 let patterns = Array.from(buildRegExps())
 
 /**
- * @param {any} context
+ * @param {string} content
  */
-export function defaultExtractor() {
+export function defaultExtractor(content) {
   /** @type {(string|string)[]} */
   let results = []
 
@@ -36,32 +36,34 @@ function* buildRegExps() {
         /-?(?:\w+)/,
 
         // Normal/Arbitrary values
-        regex.optional(regex.any([
-          regex.pattern([
-            // Arbitrary values
-            /-\[[^\s:]+\]/,
+        regex.optional(
+          regex.any([
+            regex.pattern([
+              // Arbitrary values
+              /-\[[^\s:]+\]/,
 
-            // Not immediately followed by an `{[(`
-            /(?![{([]])/,
+              // Not immediately followed by an `{[(`
+              /(?![{([]])/,
 
-            // optionally followed by an opacity modifier
-            /(?:\/[^\s'"\\$]*)?/,
-          ]),
+              // optionally followed by an opacity modifier
+              /(?:\/[^\s'"\\$]*)?/,
+            ]),
 
-          regex.pattern([
-            // Arbitrary values
-            /-\[[^\s]+\]/,
+            regex.pattern([
+              // Arbitrary values
+              /-\[[^\s]+\]/,
 
-            // Not immediately followed by an `{[(`
-            /(?![{([]])/,
+              // Not immediately followed by an `{[(`
+              /(?![{([]])/,
 
-            // optionally followed by an opacity modifier
-            /(?:\/[^\s'"\\$]*)?/,
-          ]),
+              // optionally followed by an opacity modifier
+              /(?:\/[^\s'"\\$]*)?/,
+            ]),
 
-          // Normal values w/o quotes — may include an opacity modifier
-          /[-\/][^\s'"\\$={]*/,
-        ]))
+            // Normal values w/o quotes — may include an opacity modifier
+            /[-\/][^\s'"\\$={]*/,
+          ])
+        ),
       ]),
     ]),
   ])
@@ -92,7 +94,7 @@ let ALLOWED_CLASS_CHARACTERS = /[^"'`\s<>\]]+/
  */
 function clipAtBalancedParens(input) {
   // We are care about this for arbitrary values
-  if (! input.includes('-[')) {
+  if (!input.includes('-[')) {
     return input
   }
 
@@ -111,7 +113,7 @@ function clipAtBalancedParens(input) {
     let inStringType = openStringTypes[openStringTypes.length - 1]
 
     if (char === inStringType) openStringTypes.pop()
-    if (char === '\'' && inStringType !== char) openStringTypes.push(char)
+    if (char === "'" && inStringType !== char) openStringTypes.push(char)
     if (char === '"' && inStringType !== char) openStringTypes.push(char)
     if (char === '`' && inStringType !== char) openStringTypes.push(char)
 
