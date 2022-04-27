@@ -107,7 +107,7 @@ function clipAtBalancedParens(input) {
   // We can't use lookbehind assertions because we have to support Safari
   // So, instead, we've emulated it using capture groups and we'll re-work the matches to accommodate
   matches = Array.from(matches).flatMap((match) => {
-    const [_, ...groups] = match
+    const [, ...groups] = match
 
     return groups.map((group, idx) =>
       Object.assign([], match, {
