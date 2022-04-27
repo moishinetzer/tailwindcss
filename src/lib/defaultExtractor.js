@@ -72,8 +72,7 @@ function* buildRegExps() {
 
 // We want to capture any "special" characters
 // AND the characters immediately following them (if there is one)
-// However we want single character matches so we have to use a lookbehind assertion
-let SPECIALS = /[\[\]'"`]|(?<=[\[\]'"`])./g
+let SPECIALS = /([\[\]'"`])([^\[\]'"`])?/g
 let ALLOWED_CLASS_CHARACTERS = /[^"'`\s<>\]]+/
 
 /**
@@ -103,7 +102,21 @@ function clipAtBalancedParens(input) {
   // Stop when we end at a balanced pair
   // This is naive and will treat mismatched parens as balanced
   // This shouldn't be a problem in practice though
-  for (let match of input.matchAll(SPECIALS)) {
+  let matches = input.matchAll(SPECIALS)
+
+  // We can't use lookbehind assertions because we have to support Safari
+  // So, instead, we've emulated it using capture groups and we'll re-work the matches to accommodate
+  matches = Array.from(matches).flatMap(match => {
+    const [_, ...groups] = match
+
+    return groups.map((group, idx) => Object.assign([], {
+      ...match,
+      index: match.index + idx,
+      0: group,
+    }))
+  })
+
+  for (let match of matches) {
     let char = match[0]
     let inStringType = openStringTypes[openStringTypes.length - 1]
 
